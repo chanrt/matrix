@@ -4,6 +4,7 @@
 #define ELEMENT data[row][col]
 
 #include <iostream>
+#include <string>
 
 using namespace std;
 
@@ -54,6 +55,37 @@ private:
             }
         }
         return true;
+    }
+
+    int getPrec(float f)
+    {
+        int prec = 0;
+
+        while(f - int(f) != 0.0)
+        {
+            if(prec < -5)
+                break;
+
+            f = 10.0 * f;
+            prec--;
+        }
+        return prec;
+    }
+
+    int getMatrixPrec()
+    {
+        int minimum = 0;
+        int prec;
+
+        for (int row = 0; row < rows; row++)
+        {
+            for (int col = 0; col < cols; col++)
+            {
+                if((prec = getPrec(ELEMENT)) < minimum)
+                    minimum = prec;
+            }
+        }
+        return minimum;
     }
 
 public:
@@ -130,17 +162,34 @@ public:
         isValid = true;
     }
 
+    // custom matrices
+    Matrix(int n, const string s)
+    {
+        data = getNewArray(n, n);
+        rows = cols = n;
+
+        if (s == "identity")
+        {
+            for (int i = 0; i < rows; i++)
+                data[i][i] = 1.0;
+
+            isAlloc = true;
+            isInit = true;
+            isValid = true;
+        }
+    }
+
     // using another matrix
     void clone(Matrix m)
     {
-        if(!m.isOkay())
+        if (!m.isOkay())
         {
             cout << endl;
             cout << "You cannot use such a matrix for cloning";
 
             isAlloc = isInit = isValid = false;
         }
-        else if(!m.getValid())
+        else if (!m.getValid())
         {
             cout << endl;
             cout << "You cannot use an invalid matrix for cloning";
@@ -165,12 +214,12 @@ public:
     // <--- Entering data --->
     void input()
     {
-        if(!isAlloc)
+        if (!isAlloc)
         {
             cout << endl;
             cout << "Matrix has not been allocated yet, you cannot initialize it";
         }
-        else if(isInit)
+        else if (isInit)
         {
             cout << endl;
             cout << "Matrix has already been initialized, you cannot overwrite it";
@@ -195,18 +244,19 @@ public:
     // <--- Displaying matrix --->
     void display()
     {
-        if (!isOkay())
-        {
-            cout << endl;
-            cout << "Hence, the matrix cannot be displayed";
-        }
-        else if (!isValid)
+        if (!isValid)
         {
             cout << endl;
             cout << "This matrix is a result of an undefined operation and cannot be displayed";
         }
+        else if (!isOkay())
+        {
+            cout << endl;
+            cout << "Hence, the matrix cannot be displayed";
+        }
         else // matrix can be displayed
         {
+            cout << endl;
             if (allInts())
             {
                 for (int row = 0; row < rows; row++)
@@ -218,11 +268,35 @@ public:
             }
             else
             {
+                int prec = getMatrixPrec();
                 for (int row = 0; row < rows; row++)
                 {
                     cout << endl;
                     for (int col = 0; col < cols; col++)
-                        printf("%.6f\t", ELEMENT);
+                    {
+                        switch(prec)
+                        {
+                            case -1:
+                                printf("%.1f\t", ELEMENT);
+                                break;
+                            case -2:
+                                printf("%.2f\t", ELEMENT);
+                                break;
+                            case -3:
+                                printf("%.3f\t", ELEMENT);
+                                break;
+                            case -4:
+                                printf("%.4f\t", ELEMENT);
+                                break;
+                            case -5:
+                                printf("%.5f\t", ELEMENT);
+                                break;
+                            case -6:
+                            default:
+                                printf("%.6f\t", ELEMENT);
+                                break;
+                        }
+                    }
                 }
             }
         }
@@ -409,6 +483,81 @@ public:
             return true;
     }
 
+    // <--- Elementary operations --->
+    void rowExchange(int r1, int r2)
+    {
+        if (!isOkay())
+        {
+            cout << endl;
+            cout << "Hence, its rows cannot be exchanged";
+        }
+        else if (r1 >= rows)
+        {
+            cout << endl;
+            cout << "Matrix does not have row #" << r1;
+        }
+        else if (r2 >= rows)
+        {
+            cout << endl;
+            cout << "Matrix does not have row #" << r2;
+        }
+        else
+        {
+            float *temp = new float[cols];
+
+            for (int col = 0; col < cols; col++)
+            {
+                temp[col] = data[r1][col];
+                data[r1][col] = data[r2][col];
+                data[r2][col] = temp[col];
+            }
+            delete (temp);
+        }
+    }
+
+    void rowMultiply(int r, float f)
+    {
+        if (!isOkay())
+        {
+            cout << endl;
+            cout << "Hence, its rows cannot be exchanged";
+        }
+        else if (r >= rows)
+        {
+            cout << endl;
+            cout << "Matrix does not have row #" << r;
+        }
+        else
+        {
+            for (int col = 0; col < cols; col++)
+                data[r][col] = f * data[r][col];
+        }
+    }
+
+    void rowAdd(int target, int source, float target_multiplier, float source_multiplier)
+    {
+        if (!isOkay())
+        {
+            cout << endl;
+            cout << "Hence, its rows cannot be exchanged";
+        }
+        else if (target >= rows)
+        {
+            cout << endl;
+            cout << "Matrix does not have row #" << target;
+        }
+        else if (source >= rows)
+        {
+            cout << endl;
+            cout << "Matrix does not have row #" << source;
+        }
+        else
+        {
+            for (int col = 0; col < cols; col++)
+                data[target][col] = (target_multiplier * data[target][col]) + (source_multiplier * data[source][col]);
+        }
+    }
+
     // <--- setters --->
     void setInit(bool value)
     {
@@ -418,6 +567,11 @@ public:
     void setValid(bool value)
     {
         isValid = value;
+    }
+
+    void setElement(int i, int j, float k)
+    {
+        data[i][j] = k;
     }
 
     // <--- getters --->
@@ -460,17 +614,6 @@ public:
 
 #include "properties.cpp"
 #include "operations.cpp"
+#include "solver.cpp"
 
-int main()
-{
-    Matrix m1(2), m2(2), m3;
-
-    m1.input();
-    m2.input();
-    m3.clone(m1+m2);
-    m3.display();
-
-    while (1)
-        ;
-}
 #endif
